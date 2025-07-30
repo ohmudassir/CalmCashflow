@@ -1,8 +1,30 @@
 {
-  "name": "expensetracker",
+  "name": "calm-cashflow",
+  "description": "A modern personal finance tracker to manage your income, expenses, and savings. Built with React and Material Design 3.",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "author": {
+    "name": "Mudassir Nadeem",
+    "email": "contact@ohmudassir.netlify.app",
+    "url": "https://ohmudassir.netlify.app"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ohmudassir/calm-cashflow"
+  },
+  "keywords": [
+    "expense-tracker",
+    "personal-finance",
+    "budget-management",
+    "income-tracking",
+    "expense-management",
+    "financial-planning",
+    "react",
+    "material-design",
+    "supabase"
+  ],
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
