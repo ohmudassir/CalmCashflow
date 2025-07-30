@@ -1,21 +1,216 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons+Outlined');
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons+Round');
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons+Sharp');
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons+Two+Tone');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Material Design 3 Color Tokens */
+    --md-primary-0: #000000;
+    --md-primary-10: #21005D;
+    --md-primary-20: #381E72;
+    --md-primary-30: #4F378B;
+    --md-primary-40: #6750A4;
+    --md-primary-50: #7F67BE;
+    --md-primary-60: #9A82DB;
+    --md-primary-70: #B69DF8;
+    --md-primary-80: #D0BCFF;
+    --md-primary-90: #EADDFF;
+    --md-primary-95: #F6EDFF;
+    --md-primary-99: #FFFBFE;
+    --md-primary-100: #FFFFFF;
+    
+    --md-surface: #FFFBFE;
+    --md-surface-dim: #F4EFF4;
+    --md-surface-bright: #FFFBFE;
+    --md-surface-container-lowest: #FFFFFF;
+    --md-surface-container-low: #F7F2FA;
+    --md-surface-container: #F3EDF7;
+    --md-surface-container-high: #ECE6F0;
+    --md-surface-container-highest: #E6E0E9;
+    
+    --md-on-surface: #1C1B1F;
+    --md-on-surface-variant: #49454F;
+    --md-outline: #79747E;
+    --md-outline-variant: #CAC4D0;
+  }
+
   body {
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Roboto', system-ui, sans-serif;
+    background-color: var(--md-surface);
+    color: var(--md-on-surface);
+    font-feature-settings: 'kern' 1;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Material Icons */
+  .material-icons {
+    font-family: 'Material Icons';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .material-icons-outlined {
+    font-family: 'Material Icons Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .material-icons-round {
+    font-family: 'Material Icons Round';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .material-icons-sharp {
+    font-family: 'Material Icons Sharp';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .material-icons-two-tone {
+    font-family: 'Material Icons Two Tone';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
   }
 }
 
 @layer components {
+  /* Material Design 3 Components */
+  .md-card {
+    @apply bg-white border border-gray-200 rounded-lg shadow-sm;
+  }
+
+  .md-card-elevated {
+    @apply bg-white border-0 rounded-lg shadow-md;
+  }
+
+  .md-button-primary {
+    @apply bg-purple-600 text-white px-4 py-2 rounded-lg 
+           hover:bg-purple-700 active:bg-purple-500 
+           shadow-sm hover:shadow-md 
+           transition-all duration-200 font-medium;
+  }
+
+  .md-button-secondary {
+    @apply bg-gray-200 text-gray-800 px-4 py-2 rounded-lg 
+           hover:bg-gray-300 active:bg-gray-100 
+           shadow-sm hover:shadow-md 
+           transition-all duration-200 font-medium;
+  }
+
+  .md-button-tonal {
+    @apply bg-gray-200 text-gray-800 px-4 py-2 rounded-lg 
+           hover:bg-gray-300 active:bg-gray-100 
+           shadow-sm hover:shadow-md 
+           transition-all duration-200 font-medium;
+  }
+
+  .md-button-outlined {
+    @apply border border-gray-400 text-purple-600 px-4 py-2 rounded-lg 
+           hover:bg-purple-50 hover:text-purple-700 
+           active:bg-purple-100 
+           transition-all duration-200 font-medium;
+  }
+
+  .md-button-text {
+    @apply text-purple-600 px-4 py-2 rounded-lg 
+           hover:bg-purple-50 hover:text-purple-700 
+           active:bg-purple-100 
+           transition-all duration-200 font-medium;
+  }
+
+  .md-fab {
+    @apply bg-purple-600 text-white w-14 h-14 rounded-full 
+           shadow-lg hover:shadow-xl 
+           hover:bg-purple-700 active:bg-purple-500 
+           transition-all duration-200 flex items-center justify-center;
+  }
+
+  .md-chip {
+    @apply bg-gray-100 text-gray-700 px-3 py-1 rounded-full 
+           border border-gray-300 text-sm font-medium;
+  }
+
+  .md-chip-selected {
+    @apply bg-purple-600 text-white border-purple-600;
+  }
+
+  .md-text-field {
+    @apply bg-white border border-gray-300 rounded-md px-4 py-3 
+           text-base text-gray-900 placeholder-gray-500
+           focus:border-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-600/20
+           transition-all duration-200;
+  }
+
+  .md-divider {
+    @apply border-t border-gray-200;
+  }
+
+  /* Legacy components for backward compatibility */
   .btn-primary {
-    @apply bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors;
+    @apply md-button-primary;
   }
   
   .metric-card {
-    @apply bg-white rounded-lg p-4 border border-gray-100 shadow-sm;
+    @apply md-card p-4;
   }
   
   .transaction-item {
