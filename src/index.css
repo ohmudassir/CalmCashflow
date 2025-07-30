@@ -1,0 +1,28 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors;
+  }
+  
+  .metric-card {
+    @apply bg-white rounded-lg p-4 border border-gray-100 shadow-sm;
+  }
+  
+  .transaction-item {
+    @apply flex items-center justify-between py-3 px-4 hover:bg-gray-50 transition-colors;
+  }
+  
+  .dropdown-menu {
+    @apply absolute top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50;
+  }
+}
