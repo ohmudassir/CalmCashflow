@@ -1,8 +1,10 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useTransactions } from './hooks/useTransactions'
 import { useCategories } from './hooks/useCategories'
+import { useIncomeSources } from './hooks/useIncomeSources'
 import { AddTransactionModal } from './components/AddTransactionModal'
 import { TransactionDetailModal } from './components/TransactionDetailModal'
+import { TransferModal } from './components/TransferModal'
 
 function App() {
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false)
@@ -12,6 +14,7 @@ function App() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [selectedTransaction, setSelectedTransaction] = useState(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
+  const [showTransferModal, setShowTransferModal] = useState(false)
 
   // Use custom hooks for data
   const { 
@@ -33,6 +36,12 @@ function App() {
     loading: categoriesLoading, 
     error: categoriesError 
   } = useCategories()
+
+  const { 
+    incomeSources, 
+    loading: incomeSourcesLoading, 
+    error: incomeSourcesError 
+  } = useIncomeSources()
 
   // Debug: Log when transactions change
   useEffect(() => {
@@ -101,7 +110,8 @@ function App() {
         selectedCategories.includes(transaction.categories?.name)
       
       const typeMatch = selectedTypes.includes('All') || 
-        selectedTypes.includes(transaction.type === 'income' ? 'Income' : 'Expense')
+        selectedTypes.includes(transaction.type === 'income' ? 'Income' : 
+                             (transaction.type === 'expense' && transaction.payment_method === 'transfer') ? 'Transfer' : 'Expense')
       
       return categoryMatch && typeMatch
     })
@@ -126,7 +136,7 @@ function App() {
   }, [filteredTransactions, updateTrigger, lastUpdate])
 
   // Loading state
-  if (transactionsLoading || categoriesLoading) {
+  if (transactionsLoading || categoriesLoading || incomeSourcesLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -138,7 +148,7 @@ function App() {
   }
 
   // Error state
-  if (transactionsError || categoriesError) {
+  if (transactionsError || categoriesError || incomeSourcesError) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -295,11 +305,59 @@ function App() {
           </div>
         </div>
 
+        {/* Account Balances Summary */}
+        <div className="mb-6 sm:mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl sm:text-2xl font-medium text-gray-900">Account Balances</h2>
+            <button 
+              onClick={() => setShowTransferModal(true)}
+              className="bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 active:bg-purple-500 shadow-sm hover:shadow-md transition-all duration-200 font-medium flex items-center text-sm"
+            >
+              <span className="material-icons-outlined mr-1 text-sm">swap_horiz</span>
+              Transfer
+            </button>
+          </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+              <div className="md-card p-3 sm:p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-purple-600">👛 Wallet</span>
+                  <span className="material-icons-outlined text-purple-600">account_balance_wallet</span>
+                </div>
+                <div className="text-lg sm:text-xl font-medium text-gray-900">
+                  Rs {incomeSources.wallet.toLocaleString('en-PK')}
+                </div>
+                <div className="text-xs text-gray-500">Remaining balance</div>
+              </div>
+
+              <div className="md-card p-3 sm:p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-blue-600">🏦 Bank</span>
+                  <span className="material-icons-outlined text-blue-600">account_balance</span>
+                </div>
+                <div className="text-lg sm:text-xl font-medium text-gray-900">
+                  Rs {incomeSources.bank.toLocaleString('en-PK')}
+                </div>
+                <div className="text-xs text-gray-500">Remaining balance</div>
+              </div>
+
+              <div className="md-card p-3 sm:p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-green-600">📱 Digital Wallet</span>
+                  <span className="material-icons-outlined text-green-600">smartphone</span>
+                </div>
+                <div className="text-lg sm:text-xl font-medium text-gray-900">
+                  Rs {incomeSources.digital_wallet.toLocaleString('en-PK')}
+                </div>
+                <div className="text-xs text-gray-500">Remaining balance</div>
+              </div>
+            </div>
+        </div>
+
         {/* Transactions Section */}
         <div>
           <h2 className="text-xl sm:text-2xl font-medium text-gray-900 mb-2">Transactions</h2>
           <p className="text-gray-600 mb-4 sm:mb-6">
-            You had {transactions.filter(t => t.type === 'income').length} incomes and {transactions.filter(t => t.type === 'expense').length} expenses this month
+            You had {transactions.filter(t => t.type === 'income').length} incomes, {transactions.filter(t => t.type === 'expense' && t.payment_method !== 'transfer').length} expenses, and {transactions.filter(t => t.type === 'expense' && t.payment_method === 'transfer').length} transfers this month
           </p>
 
           {/* Filter Bar */}
@@ -343,6 +401,15 @@ function App() {
                           className="rounded border-gray-400 text-purple-600 focus:ring-purple-600"
                         />
                         <span className="text-sm">Expense</span>
+                      </label>
+                      <label className="flex items-center space-x-2">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedTypes.includes('Transfer')}
+                          onChange={() => toggleType('Transfer')}
+                          className="rounded border-gray-400 text-purple-600 focus:ring-purple-600"
+                        />
+                        <span className="text-sm">Transfer</span>
                       </label>
                     </div>
                   </div>
@@ -414,39 +481,108 @@ function App() {
                     
                     <div className="divide-y divide-gray-200">
                       {dateTransactions.map(transaction => (
-                        <div key={transaction.id} className="transaction-item">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 rounded-lg flex items-center justify-center" 
-                                 style={{ backgroundColor: `${transaction.categories?.color || '#6750A4'}20` }}>
-                              <span className="material-icons-outlined" 
-                                    style={{ color: transaction.categories?.color || '#6750A4' }}>
-                                {transaction.categories?.icon || 'account_balance_wallet'}
-                              </span>
-                            </div>
-                            <div>
-                              <div className="text-lg font-medium text-gray-900">
-                  {transaction.title.charAt(0).toUpperCase() + transaction.title.slice(1)}
-                </div>
-                              <div className="flex items-center space-x-2">
-                                <span className="md-chip">{transaction.categories?.name || 'Uncategorized'}</span>
+                        <div key={transaction.id} className="transaction-item p-4">
+                          <button 
+                            onClick={() => {
+                              setSelectedTransaction(transaction)
+                              setShowDetailModal(true)
+                            }}
+                            className="w-full text-left hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors"
+                          >
+                            <div className="flex items-start space-x-3">
+                              <div className="w-10 h-10 rounded-lg flex items-center justify-center" 
+                                   style={{ backgroundColor: `${transaction.categories?.color || '#6750A4'}20` }}>
+                                <span className="material-icons-outlined" 
+                                      style={{ color: transaction.categories?.color || '#6750A4' }}>
+                                  {transaction.categories?.icon || 'account_balance_wallet'}
+                                </span>
+                              </div>
+                              <div className="flex-1">
+                                <div className="text-lg font-medium text-gray-900">
+                                  {transaction.title.charAt(0).toUpperCase() + transaction.title.slice(1)}
+                                </div>
+                                                              <div className="flex items-center space-x-2">
+                                {transaction.type === 'expense' && transaction.payment_method === 'transfer' ? (
+                                  <span className="md-chip bg-purple-100 text-purple-800">Transfer</span>
+                                ) : (
+                                  <span className="md-chip">{transaction.categories?.name || 'Uncategorized'}</span>
+                                )}
+                                {/* Desktop version - show chips for larger screens */}
+                                <div className="hidden sm:flex items-center space-x-2">
+                                  {transaction.type === 'expense' && transaction.payment_method !== 'transfer' && (
+                                    <>
+                                      <span className="md-chip text-xs bg-blue-100 text-blue-800">
+                                        {transaction.payment_method === 'cash' ? '💵 Cash' : '💳 Credit'}
+                                      </span>
+                                      <span className="md-chip text-xs bg-green-100 text-green-800">
+                                        {transaction.income_source === 'wallet' ? '👛 Wallet' :
+                                         transaction.income_source === 'bank' ? '🏦 Bank' :
+                                         transaction.income_source === 'digital_wallet' ? '📱 Digital Wallet' : '💼 Source'}
+                                      </span>
+                                    </>
+                                  )}
+                                  {transaction.type === 'expense' && transaction.payment_method === 'transfer' && (
+                                    <span className="md-chip text-xs bg-purple-100 text-purple-800">
+                                      🔄 {transaction.income_source === 'wallet' ? '👛' :
+                                          transaction.income_source === 'bank' ? '🏦' :
+                                          transaction.income_source === 'digital_wallet' ? '📱' : '💼'} 
+                                      → {(() => {
+                                          const description = transaction.description || ''
+                                          if (description.includes('to Wallet')) return '👛'
+                                          if (description.includes('to Bank')) return '🏦'
+                                          if (description.includes('to Digital Wallet')) return '📱'
+                                          return '💼'
+                                        })()}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                                {/* Mobile-friendly payment method and income source display */}
+                                <div className="mt-1 text-xs text-gray-500 space-y-1 sm:hidden">
+                                  {transaction.type === 'expense' && transaction.payment_method !== 'transfer' && (
+                                    <>
+                                      <div className="flex items-center">
+                                        <span className="material-icons-outlined text-xs mr-1">payment</span>
+                                        <span>{transaction.payment_method === 'cash' ? 'Cash Payment' : 'Credit Payment'}</span>
+                                      </div>
+                                      <div className="flex items-center">
+                                        <span className="material-icons-outlined text-xs mr-1">account_balance_wallet</span>
+                                        <span>
+                                          {transaction.income_source === 'wallet' ? 'Wallet' :
+                                           transaction.income_source === 'bank' ? 'Bank' :
+                                           transaction.income_source === 'digital_wallet' ? 'Digital Wallet' : 'Source'}
+                                        </span>
+                                      </div>
+                                    </>
+                                  )}
+                                  {transaction.type === 'expense' && transaction.payment_method === 'transfer' && (
+                                    <div className="flex items-center">
+                                      <span className="material-icons-outlined text-xs mr-1">swap_horiz</span>
+                                      <span>
+                                        {transaction.income_source === 'wallet' ? 'Wallet' :
+                                         transaction.income_source === 'bank' ? 'Bank' :
+                                         transaction.income_source === 'digital_wallet' ? 'Digital Wallet' : 'Source'} 
+                                        → 
+                                        {(() => {
+                                          const description = transaction.description || ''
+                                          if (description.includes('to Wallet')) return 'Wallet'
+                                          if (description.includes('to Bank')) return 'Bank'
+                                          if (description.includes('to Digital Wallet')) return 'Digital Wallet'
+                                          return 'Destination'
+                                        })()}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex flex-col items-end">
+                                                            <span className={`text-lg font-medium ${transaction.type === 'income' ? 'text-purple-600' : (transaction.type === 'expense' && transaction.payment_method === 'transfer') ? 'text-blue-600' : 'text-red-500'}`}>
+                              {transaction.type === 'income' ? '+' : (transaction.type === 'expense' && transaction.payment_method === 'transfer') ? '↔' : '-'}
+                              Rs {parseFloat(transaction.amount).toLocaleString('en-PK')}
+                            </span>
                               </div>
                             </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                                                         <span className={`text-lg font-medium ${transaction.type === 'income' ? 'text-purple-600' : 'text-red-500'}`}>
-                               {transaction.type === 'income' ? '+' : '-'}
-                               Rs {parseFloat(transaction.amount).toLocaleString('en-PK')}
-                             </span>
-                                                         <button 
-                               onClick={() => {
-                                 setSelectedTransaction(transaction)
-                                 setShowDetailModal(true)
-                               }}
-                               className="text-gray-500 hover:text-gray-700 transition-colors"
-                             >
-                               <span className="material-icons-outlined">more_vert</span>
-                             </button>
-                          </div>
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -480,6 +616,17 @@ function App() {
         onClose={() => {
           setShowDetailModal(false)
           setSelectedTransaction(null)
+          // Force immediate update when modal closes
+          setLastUpdate(Date.now())
+          setUpdateTrigger(prev => prev + 1)
+        }} 
+      />
+
+      {/* Transfer Modal */}
+      <TransferModal 
+        isOpen={showTransferModal} 
+        onClose={() => {
+          setShowTransferModal(false)
           // Force immediate update when modal closes
           setLastUpdate(Date.now())
           setUpdateTrigger(prev => prev + 1)

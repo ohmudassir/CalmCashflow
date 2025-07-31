@@ -49,10 +49,17 @@ export const useTransactions = (onTransactionsUpdate) => {
         console.error('Error creating user:', userError)
       }
 
+      // Prepare transaction data with default values for new fields
+      const transactionToInsert = {
+        ...transactionData,
+        payment_method: transactionData.payment_method || 'cash',
+        income_source: transactionData.income_source || 'wallet'
+      }
+
       // Then insert the transaction
       const { data, error } = await supabase
         .from('transactions')
-        .insert([transactionData])
+        .insert([transactionToInsert])
         .select(`
           *,
           categories (
@@ -91,9 +98,16 @@ export const useTransactions = (onTransactionsUpdate) => {
   // Update transaction
   const updateTransaction = async (id, updates) => {
     try {
+      // Prepare update data with default values for new fields
+      const updateData = {
+        ...updates,
+        payment_method: updates.payment_method || 'cash',
+        income_source: updates.income_source || 'wallet'
+      }
+
       const { data, error } = await supabase
         .from('transactions')
-        .update(updates)
+        .update(updateData)
         .eq('id', id)
         .select(`
           *,

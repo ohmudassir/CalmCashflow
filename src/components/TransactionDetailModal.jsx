@@ -5,6 +5,8 @@ import { useTransactions } from '../hooks/useTransactions'
 export const TransactionDetailModal = ({ transaction, isOpen, onClose }) => {
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false)
+  const [incomeSourceDropdownOpen, setIncomeSourceDropdownOpen] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -12,7 +14,9 @@ export const TransactionDetailModal = ({ transaction, isOpen, onClose }) => {
     type: 'expense',
     category_id: '',
     transaction_date: new Date().toISOString().split('T')[0],
-    currency: 'PKR'
+    currency: 'PKR',
+    payment_method: 'cash',
+    income_source: 'wallet'
   })
 
   // Update form data when transaction changes or when entering edit mode
@@ -25,13 +29,30 @@ export const TransactionDetailModal = ({ transaction, isOpen, onClose }) => {
         type: transaction.type || 'expense',
         category_id: transaction.category_id || '',
         transaction_date: transaction.transaction_date || new Date().toISOString().split('T')[0],
-        currency: transaction.currency || 'PKR'
+        currency: transaction.currency || 'PKR',
+        payment_method: transaction.payment_method || 'cash',
+        income_source: transaction.income_source || 'wallet'
       })
     }
   }, [transaction, isEditing])
 
   const { categories } = useCategories()
   const { updateTransaction, deleteTransaction } = useTransactions()
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.dropdown-container')) {
+        setCategoryDropdownOpen(false)
+        setIncomeSourceDropdownOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -168,27 +189,129 @@ export const TransactionDetailModal = ({ transaction, isOpen, onClose }) => {
               />
             </div>
 
+            {/* Payment Method - Only for Expenses */}
+            {formData.type === 'expense' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Payment Method <span className="text-xs text-gray-500">(current: {transaction.payment_method === 'cash' ? 'Cash' : 'Credit'})</span>
+                </label>
+                <div className="flex space-x-4">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="payment_method"
+                      value="cash"
+                      checked={formData.payment_method === 'cash'}
+                      onChange={handleChange}
+                      className="mr-2"
+                    />
+                    <span className="text-sm">Cash</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="payment_method"
+                      value="credit"
+                      checked={formData.payment_method === 'credit'}
+                      onChange={handleChange}
+                      className="mr-2"
+                    />
+                    <span className="text-sm">Credit</span>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {/* Income Source */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {formData.type === 'income' ? 'Income Source' : 'Spending Source'} <span className="text-xs text-gray-500">(current: {transaction.income_source === 'wallet' ? 'Wallet' :
+                transaction.income_source === 'bank' ? 'Bank' :
+                transaction.income_source === 'digital_wallet' ? 'Digital Wallet' : 'Source'})</span>
+              </label>
+              <div className="relative dropdown-container">
+                <button 
+                  type="button"
+                  onClick={() => setIncomeSourceDropdownOpen(!incomeSourceDropdownOpen)}
+                  className="w-full bg-white border border-gray-300 rounded-md px-3 py-2 text-left text-gray-900 focus:border-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-600/20 transition-all duration-200 flex items-center justify-between"
+                >
+                  <span>
+                    {formData.income_source === 'wallet' ? 'Wallet' :
+                     formData.income_source === 'bank' ? 'Bank' :
+                     formData.income_source === 'digital_wallet' ? 'Digital Wallet' : 'Select Source'}
+                  </span>
+                  <span className="material-icons-outlined text-gray-500">expand_more</span>
+                </button>
+
+                {incomeSourceDropdownOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                    <div className="p-2">
+                      {['wallet', 'bank', 'digital_wallet'].map(source => (
+                        <div 
+                          key={source}
+                          className="flex items-center justify-between px-3 py-2 hover:bg-gray-50 rounded cursor-pointer"
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, income_source: source }))
+                            setIncomeSourceDropdownOpen(false)
+                          }}
+                        >
+                          <span>
+                            {source === 'wallet' ? 'Wallet' :
+                             source === 'bank' ? 'Bank' :
+                             source === 'digital_wallet' ? 'Digital Wallet' : source}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Category */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Category <span className="text-xs text-gray-500">(current: {transaction.categories?.name || 'Uncategorized'})</span>
               </label>
-              <select
-                name="category_id"
-                value={formData.category_id}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-              >
-                <option value="">Select a category</option>
-                {categories
-                  .filter(cat => cat.type === formData.type || cat.type === 'both')
-                  .map(category => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-              </select>
+              <div className="relative dropdown-container">
+                <button 
+                  type="button"
+                  onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
+                  className="w-full bg-white border border-gray-300 rounded-md px-3 py-2 text-left text-gray-900 focus:border-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-600/20 transition-all duration-200 flex items-center justify-between"
+                >
+                  <span>
+                    {formData.category_id ? 
+                      categories.find(cat => cat.id === formData.category_id)?.name || 'Select Category' : 
+                      'Select Category'
+                    }
+                  </span>
+                  <span className="material-icons-outlined text-gray-500">expand_more</span>
+                </button>
+
+                {categoryDropdownOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-48 overflow-y-auto">
+                    <div className="p-2">
+                      {categories
+                        .filter(cat => cat.type === formData.type || cat.type === 'both')
+                        .map(category => (
+                          <div 
+                            key={category.id}
+                            className="flex items-center px-3 py-2 hover:bg-gray-50 rounded cursor-pointer"
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, category_id: category.id }))
+                              setCategoryDropdownOpen(false)
+                            }}
+                          >
+                            <span className="material-icons-outlined text-sm mr-2" style={{ color: category.color }}>
+                              {category.icon}
+                            </span>
+                            <span>{category.name}</span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Date */}
@@ -297,6 +420,26 @@ export const TransactionDetailModal = ({ transaction, isOpen, onClose }) => {
               <div className="flex justify-between items-center py-2 border-b border-gray-200">
                 <span className="text-sm font-medium text-gray-600">Currency</span>
                 <span className="text-sm text-gray-900">{transaction.currency || 'PKR'}</span>
+              </div>
+
+              {transaction.type === 'expense' && (
+                <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                  <span className="text-sm font-medium text-gray-600">Payment Method</span>
+                  <span className="text-sm text-gray-900">
+                    {transaction.payment_method === 'cash' ? '💵 Cash' : '💳 Credit'}
+                  </span>
+                </div>
+              )}
+
+              <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                <span className="text-sm font-medium text-gray-600">
+                  {transaction.type === 'income' ? 'Income Source' : 'Spending Source'}
+                </span>
+                <span className="text-sm text-gray-900">
+                  {transaction.income_source === 'wallet' ? '👛 Wallet' :
+                   transaction.income_source === 'bank' ? '🏦 Bank' :
+                   transaction.income_source === 'digital_wallet' ? '📱 Digital Wallet' : '💼 Source'}
+                </span>
               </div>
 
               {transaction.description && (

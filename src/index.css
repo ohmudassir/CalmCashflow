@@ -227,7 +227,7 @@
   }
   
   .transaction-item {
-    @apply flex items-center justify-between py-3 px-4 hover:bg-gray-50 transition-colors;
+    @apply flex items-start justify-between py-3 px-4 hover:bg-gray-50 transition-colors;
   }
   
   .dropdown-menu {
