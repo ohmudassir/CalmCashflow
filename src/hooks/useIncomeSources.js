@@ -28,6 +28,7 @@ export const useIncomeSources = () => {
         .from('transactions')
         .select('amount, income_source')
         .eq('type', 'expense')
+        .neq('payment_method', 'transfer')
 
       if (expenseError) throw expenseError
 
@@ -55,7 +56,7 @@ export const useIncomeSources = () => {
         }
       })
 
-      // Subtract expense amounts (excluding transfers)
+      // Subtract expense amounts (transfers are handled separately)
       expenseData?.forEach(transaction => {
         const source = transaction.income_source || 'wallet'
         if (sources.hasOwnProperty(source)) {
@@ -115,12 +116,27 @@ export const useIncomeSources = () => {
       if (transaction.type === 'income') {
         newBalances[source] = (newBalances[source] || 0) + amount
       } else if (transaction.type === 'expense') {
-        newBalances[source] = (newBalances[source] || 0) - amount
-      } else if (transaction.type === 'transfer') {
-        const toSource = transaction.transfer_to_source
-        newBalances[source] = (newBalances[source] || 0) - amount
-        if (toSource && newBalances.hasOwnProperty(toSource)) {
-          newBalances[toSource] = (newBalances[toSource] || 0) + amount
+        // Handle transfer transactions separately
+        if (transaction.payment_method === 'transfer') {
+          // Handle transfer: subtract from source and add to destination
+          const description = transaction.description || ''
+          let toSource = null
+          
+          if (description.includes('to Wallet')) {
+            toSource = 'wallet'
+          } else if (description.includes('to Bank')) {
+            toSource = 'bank'
+          } else if (description.includes('to Digital Wallet')) {
+            toSource = 'digital_wallet'
+          }
+          
+          if (toSource && newBalances.hasOwnProperty(toSource)) {
+            newBalances[source] = (newBalances[source] || 0) - amount
+            newBalances[toSource] = (newBalances[toSource] || 0) + amount
+          }
+        } else {
+          // Regular expense - subtract from source
+          newBalances[source] = (newBalances[source] || 0) - amount
         }
       }
 

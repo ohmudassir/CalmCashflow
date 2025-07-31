@@ -87,7 +87,7 @@ function App() {
       .reduce((sum, t) => sum + parseFloat(t.amount), 0)
     
     const expense = transactionData
-      .filter(t => t.type === 'expense')
+      .filter(t => t.type === 'expense' && t.payment_method !== 'transfer')
       .reduce((sum, t) => sum + parseFloat(t.amount), 0)
     
     const balance = income - expense

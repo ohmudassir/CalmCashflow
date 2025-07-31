@@ -21,7 +21,7 @@ export const useTransactions = (onTransactionsUpdate) => {
             color
           )
         `)
-        .order('transaction_date', { ascending: false })
+        .order('created_at', { ascending: false })
 
       if (error) throw error
       setTransactions(data || [])
