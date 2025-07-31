@@ -375,16 +375,23 @@ export const TransactionDetailModal = ({ transaction, isOpen, onClose }) => {
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-medium text-gray-900">
-          {transaction.title.charAt(0).toUpperCase() + transaction.title.slice(1)}
-        </h3>
-                <p className="text-sm text-gray-600">{transaction.categories?.name || 'Uncategorized'}</p>
+                  {transaction.title.charAt(0).toUpperCase() + transaction.title.slice(1)}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {transaction.type === 'expense' && transaction.payment_method === 'transfer' ? 'Transfer' : 
+                   transaction.categories?.name || 'Uncategorized'}
+                </p>
               </div>
               <div className="text-right">
-                <div className={`text-lg font-medium ${transaction.type === 'income' ? 'text-purple-600' : 'text-red-500'}`}>
-                  {transaction.type === 'income' ? '+' : '-'}
+                <div className={`text-lg font-medium ${transaction.type === 'income' ? 'text-purple-600' : 
+                  (transaction.type === 'expense' && transaction.payment_method === 'transfer') ? 'text-blue-600' : 'text-red-500'}`}>
+                  {transaction.type === 'income' ? '+' : 
+                   (transaction.type === 'expense' && transaction.payment_method === 'transfer') ? '↔' : '-'}
                   Rs {parseFloat(transaction.amount).toLocaleString('en-PK')}
                 </div>
-                <div className="text-xs text-gray-500 capitalize">{transaction.type}</div>
+                <div className="text-xs text-gray-500 capitalize">
+                  {transaction.type === 'expense' && transaction.payment_method === 'transfer' ? 'transfer' : transaction.type}
+                </div>
               </div>
             </div>
 
@@ -414,7 +421,10 @@ export const TransactionDetailModal = ({ transaction, isOpen, onClose }) => {
 
               <div className="flex justify-between items-center py-2 border-b border-gray-200">
                 <span className="text-sm font-medium text-gray-600">Category</span>
-                <span className="text-sm text-gray-900">{transaction.categories?.name || 'Uncategorized'}</span>
+                <span className="text-sm text-gray-900">
+                  {transaction.type === 'expense' && transaction.payment_method === 'transfer' ? 'Transfer' : 
+                   transaction.categories?.name || 'Uncategorized'}
+                </span>
               </div>
 
               <div className="flex justify-between items-center py-2 border-b border-gray-200">
@@ -422,7 +432,7 @@ export const TransactionDetailModal = ({ transaction, isOpen, onClose }) => {
                 <span className="text-sm text-gray-900">{transaction.currency || 'PKR'}</span>
               </div>
 
-              {transaction.type === 'expense' && (
+              {transaction.type === 'expense' && transaction.payment_method !== 'transfer' && (
                 <div className="flex justify-between items-center py-2 border-b border-gray-200">
                   <span className="text-sm font-medium text-gray-600">Payment Method</span>
                   <span className="text-sm text-gray-900">
@@ -431,9 +441,25 @@ export const TransactionDetailModal = ({ transaction, isOpen, onClose }) => {
                 </div>
               )}
 
+              {transaction.type === 'expense' && transaction.payment_method === 'transfer' && (
+                <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                  <span className="text-sm font-medium text-gray-600">Transfer Details</span>
+                  <span className="text-sm text-gray-900">
+                    {(() => {
+                      const description = transaction.description || ''
+                      if (description.includes('to Wallet')) return '👛 Wallet'
+                      if (description.includes('to Bank')) return '🏦 Bank'
+                      if (description.includes('to Digital Wallet')) return '📱 Digital Wallet'
+                      return 'Destination'
+                    })()}
+                  </span>
+                </div>
+              )}
+
               <div className="flex justify-between items-center py-2 border-b border-gray-200">
                 <span className="text-sm font-medium text-gray-600">
-                  {transaction.type === 'income' ? 'Income Source' : 'Spending Source'}
+                  {transaction.type === 'income' ? 'Income Source' : 
+                   (transaction.type === 'expense' && transaction.payment_method === 'transfer') ? 'From Source' : 'Spending Source'}
                 </span>
                 <span className="text-sm text-gray-900">
                   {transaction.income_source === 'wallet' ? '👛 Wallet' :
