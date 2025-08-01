@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
-export const useTransactions = (onTransactionsUpdate) => {
+export const useTransactions = () => {
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -24,14 +24,48 @@ export const useTransactions = (onTransactionsUpdate) => {
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      setTransactions(data || [])
-      if (onTransactionsUpdate) onTransactionsUpdate(data || [])
+      const newTransactions = data || []
+      console.log('Fetched transactions:', newTransactions.length, 'transactions')
+      console.log('Setting transactions state with:', newTransactions)
+      setTransactions(newTransactions)
     } catch (err) {
       setError(err.message)
     } finally {
       setLoading(false)
     }
   }
+
+  // Setup real-time subscriptions
+  useEffect(() => {
+    console.log('Setting up real-time subscriptions for transactions')
+    // Initial fetch
+    fetchTransactions()
+
+    // Setup real-time subscription for transactions
+    const transactionsChannel = supabase
+      .channel('public:transactions')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'transactions',
+        },
+        (payload) => {
+          console.log('Transaction change detected:', payload)
+          console.log('Re-fetching transactions due to change...')
+          // Re-fetch data to update UI
+          fetchTransactions()
+        }
+      )
+      .subscribe()
+
+    // Cleanup on unmount
+    return () => {
+      console.log('Cleaning up real-time subscription')
+      supabase.removeChannel(transactionsChannel)
+    }
+  }, [])
 
   // Add new transaction (direct insert for testing)
   const addTransaction = async (transactionData) => {
@@ -75,18 +109,8 @@ export const useTransactions = (onTransactionsUpdate) => {
         throw new Error(`Database error: ${error.message}`)
       }
       
-      // Update local state immediately
-      if (data && data[0]) {
-        console.log('Adding new transaction to state:', data[0]) // Debug log
-        setTransactions(prev => {
-          const newState = [data[0], ...prev]
-          console.log('New transactions state:', newState) // Debug log
-          console.log('Previous state length:', prev.length, 'New state length:', newState.length)
-          if (onTransactionsUpdate) onTransactionsUpdate(newState)
-          return newState
-        })
-      }
-      
+      // The real-time subscription will handle the UI update
+      console.log('Transaction added successfully:', data[0])
       return data[0]
     } catch (err) {
       console.error('Error in addTransaction:', err)
@@ -121,15 +145,8 @@ export const useTransactions = (onTransactionsUpdate) => {
 
       if (error) throw error
       
-      // Update local state immediately
-      if (data && data[0]) {
-        setTransactions(prev => {
-          const newState = prev.map(t => t.id === id ? data[0] : t)
-          if (onTransactionsUpdate) onTransactionsUpdate(newState)
-          return newState
-        })
-      }
-      
+      // The real-time subscription will handle the UI update
+      console.log('Transaction updated successfully:', data[0])
       return data[0]
     } catch (err) {
       setError(err.message)
@@ -147,21 +164,13 @@ export const useTransactions = (onTransactionsUpdate) => {
 
       if (error) throw error
       
-      // Update local state immediately
-      setTransactions(prev => {
-        const newState = prev.filter(t => t.id !== id)
-        if (onTransactionsUpdate) onTransactionsUpdate(newState)
-        return newState
-      })
+      // The real-time subscription will handle the UI update
+      console.log('Transaction deleted successfully:', id)
     } catch (err) {
       setError(err.message)
       throw err
     }
   }
-
-  useEffect(() => {
-    fetchTransactions()
-  }, [])
 
   return {
     transactions,

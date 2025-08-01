@@ -15,21 +15,18 @@ function App() {
   const [selectedTransaction, setSelectedTransaction] = useState(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [showTransferModal, setShowTransferModal] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Use custom hooks for data
   const { 
     transactions, 
     loading: transactionsLoading, 
-    error: transactionsError
-  } = useTransactions((updatedTransactions) => {
-    console.log('Transactions updated via callback:', updatedTransactions)
-    // Update local state immediately
-    setCurrentTransactions(updatedTransactions)
-    // Force immediate re-render
-    setUpdateTrigger(prev => prev + 1)
-    // Also update a timestamp to force re-render
-    setLastUpdate(Date.now())
-  })
+    error: transactionsError,
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+    fetchTransactions
+  } = useTransactions()
   
   const { 
     categories, 
@@ -41,24 +38,26 @@ function App() {
     incomeSources, 
     loading: incomeSourcesLoading, 
     error: incomeSourcesError 
-  } = useIncomeSources()
+  } = useIncomeSources(transactions)
 
   // Debug: Log when transactions change
   useEffect(() => {
-    console.log('Transactions changed:', transactions)
+    console.log('Transactions changed in App:', transactions.length, transactions)
   }, [transactions])
 
-  // Force re-render when transactions change
-  const [updateTrigger, setUpdateTrigger] = useState(0)
-  const [transactionCount, setTransactionCount] = useState(0)
-  const [lastUpdate, setLastUpdate] = useState(Date.now())
-  const [currentTransactions, setCurrentTransactions] = useState([])
-  
-  useEffect(() => {
-    console.log('Transactions length changed from', transactionCount, 'to', transactions.length)
-    setTransactionCount(transactions.length)
-    setUpdateTrigger(prev => prev + 1)
-  }, [transactions, transactionCount])
+  // Manual refresh function
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    console.log('Manual refresh triggered')
+    try {
+      await fetchTransactions()
+      console.log('Manual refresh completed')
+    } catch (error) {
+      console.error('Manual refresh failed:', error)
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
 
   const toggleCategory = (category) => {
     setSelectedCategories(prev => 
@@ -78,15 +77,13 @@ function App() {
 
   // Calculate summary directly from transactions
   const summary = useMemo(() => {
-    // Use currentTransactions if available, otherwise use transactions from hook
-    const transactionData = currentTransactions.length > 0 ? currentTransactions : transactions
-    console.log('Recalculating summary with transactions:', transactionData)
+    console.log('Recalculating summary with transactions:', transactions)
     
-    const income = transactionData
+    const income = transactions
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + parseFloat(t.amount), 0)
     
-    const expense = transactionData
+    const expense = transactions
       .filter(t => t.type === 'expense' && t.payment_method !== 'transfer')
       .reduce((sum, t) => sum + parseFloat(t.amount), 0)
     
@@ -100,12 +97,11 @@ function App() {
     
     console.log('Summary calculated:', summaryData)
     return summaryData
-  }, [transactions, currentTransactions, updateTrigger, lastUpdate])
+  }, [transactions])
 
   // Filter transactions based on selected categories and types
   const filteredTransactions = useMemo(() => {
-    const transactionData = currentTransactions.length > 0 ? currentTransactions : transactions
-    return transactionData.filter(transaction => {
+    return transactions.filter(transaction => {
       const categoryMatch = selectedCategories.length === 0 || 
         selectedCategories.includes(transaction.categories?.name)
       
@@ -115,7 +111,7 @@ function App() {
       
       return categoryMatch && typeMatch
     })
-  }, [transactions, currentTransactions, selectedCategories, selectedTypes, updateTrigger, lastUpdate])
+  }, [transactions, selectedCategories, selectedTypes])
 
   // Group transactions by date
   const groupedTransactions = useMemo(() => {
@@ -133,7 +129,7 @@ function App() {
       groups[date].push(transaction)
     })
     return groups
-  }, [filteredTransactions, updateTrigger, lastUpdate])
+  }, [filteredTransactions])
 
   // Loading state
   if (transactionsLoading || categoriesLoading || incomeSourcesLoading) {
@@ -162,7 +158,7 @@ function App() {
   }
 
   return (
-    <div key={updateTrigger} className="min-h-screen bg-gradient-to-br from-purple-200 via-purple-50 to-white pt-4">
+    <div className="min-h-screen bg-gradient-to-br from-purple-200 via-purple-50 to-white pt-4">
             {/* Top Navigation Bar */}
       <nav className="bg-white/60 backdrop-blur-xl rounded-3xl shadow-lg mx-6 sm:mx-8 md:mx-16 lg:mx-20 xl:mx-24 mt-0 mb-6 sm:mb-8 px-4 sm:px-6 md:px-8 py-3 sm:py-4 border border-white/30">
         <div className="flex items-center justify-center">
@@ -180,13 +176,25 @@ function App() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6">
             <h1 className="text-xl sm:text-2xl md:text-3xl font-medium text-gray-900">Summary</h1>
             {/* Add Button - Top aligned with summary */}
-            <button 
-              onClick={() => setShowAddModal(true)}
-              className="bg-purple-600 text-white px-2 sm:px-4 py-2 rounded-lg hover:bg-purple-700 active:bg-purple-500 shadow-sm hover:shadow-md transition-all duration-200 font-medium flex items-center mt-2 sm:mt-0 text-xs sm:text-base"
-            >
-              <span className="material-icons-outlined mr-1 sm:mr-2 text-base sm:text-lg">add</span>
-              Add Transaction
-            </button>
+            <div className="flex items-center space-x-2 mt-2 sm:mt-0">
+                     <button
+                       onClick={() => setShowAddModal(true)}
+                       className="bg-purple-600 text-white px-2 sm:px-4 py-2 rounded-lg hover:bg-purple-700 active:bg-purple-500 shadow-sm hover:shadow-md transition-all duration-200 font-medium flex items-center text-xs sm:text-base"
+                     >
+                       <span className="material-icons-outlined mr-1 sm:mr-2 text-base sm:text-lg">add</span>
+                       Add Transaction
+                     </button>
+                     <button
+                       onClick={handleRefresh}
+                       disabled={isRefreshing}
+                       className="text-gray-700 hover:text-gray-900 p-3 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed border border-gray-300 hover:border-gray-400"
+                       title={isRefreshing ? 'Refreshing...' : 'Refresh'}
+                     >
+                       <span className={`material-icons-outlined text-lg ${isRefreshing ? 'animate-spin' : ''}`}>
+                         refresh
+                       </span>
+                     </button>
+                   </div>
           </div>
           
           {/* Net Total */}
@@ -601,12 +609,8 @@ function App() {
       {/* Add Transaction Modal */}
       <AddTransactionModal 
         isOpen={showAddModal} 
-        onClose={() => {
-          setShowAddModal(false)
-          // Force immediate update when modal closes
-          setLastUpdate(Date.now())
-          setUpdateTrigger(prev => prev + 1)
-        }} 
+        onClose={() => setShowAddModal(false)}
+        addTransaction={addTransaction}
       />
 
       {/* Transaction Detail Modal */}
@@ -616,21 +620,16 @@ function App() {
         onClose={() => {
           setShowDetailModal(false)
           setSelectedTransaction(null)
-          // Force immediate update when modal closes
-          setLastUpdate(Date.now())
-          setUpdateTrigger(prev => prev + 1)
-        }} 
+        }}
+        updateTransaction={updateTransaction}
+        deleteTransaction={deleteTransaction}
       />
 
       {/* Transfer Modal */}
       <TransferModal 
         isOpen={showTransferModal} 
-        onClose={() => {
-          setShowTransferModal(false)
-          // Force immediate update when modal closes
-          setLastUpdate(Date.now())
-          setUpdateTrigger(prev => prev + 1)
-        }} 
+        onClose={() => setShowTransferModal(false)}
+        addTransaction={addTransaction}
       />
     </div>
   )

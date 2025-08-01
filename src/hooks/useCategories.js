@@ -24,6 +24,35 @@ export const useCategories = () => {
     }
   }
 
+  // Setup real-time subscription
+  useEffect(() => {
+    // Initial fetch
+    fetchCategories()
+
+    // Setup real-time subscription for categories
+    const categoriesChannel = supabase
+      .channel('public:categories')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'categories',
+        },
+        (payload) => {
+          console.log('Category change detected:', payload)
+          // Re-fetch data to update UI
+          fetchCategories()
+        }
+      )
+      .subscribe()
+
+    // Cleanup on unmount
+    return () => {
+      supabase.removeChannel(categoriesChannel)
+    }
+  }, [])
+
   // Get categories by type
   const getCategoriesByType = (type) => {
     return categories.filter(cat => 
@@ -51,8 +80,8 @@ export const useCategories = () => {
 
       if (error) throw error
       
-      // Refresh categories list
-      await fetchCategories()
+      // The real-time subscription will handle the UI update
+      console.log('Category added successfully:', data[0])
       return data[0]
     } catch (err) {
       setError(err.message)
@@ -71,8 +100,8 @@ export const useCategories = () => {
 
       if (error) throw error
       
-      // Refresh categories list
-      await fetchCategories()
+      // The real-time subscription will handle the UI update
+      console.log('Category updated successfully:', data[0])
       return data[0]
     } catch (err) {
       setError(err.message)
@@ -90,28 +119,23 @@ export const useCategories = () => {
 
       if (error) throw error
       
-      // Refresh categories list
-      await fetchCategories()
+      // The real-time subscription will handle the UI update
+      console.log('Category deleted successfully:', id)
     } catch (err) {
       setError(err.message)
       throw err
     }
   }
 
-  useEffect(() => {
-    fetchCategories()
-  }, [])
-
   return {
     categories,
     loading,
     error,
-    addCategory,
-    updateCategory,
-    deleteCategory,
-    fetchCategories,
     getCategoriesByType,
     getIncomeCategories,
-    getExpenseCategories
+    getExpenseCategories,
+    addCategory,
+    updateCategory,
+    deleteCategory
   }
 } 
