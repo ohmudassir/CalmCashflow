@@ -1,27 +1,29 @@
 # 💰 Calm Cashflow - Personal Finance Tracker
 
-A modern, responsive personal finance tracker built with React, Material Design 3, and Supabase. Track your income, expenses, and savings with a beautiful, intuitive interface.
+A modern, responsive personal finance tracker built with React, Material Design 3, and Supabase. Track your income, expenses, and savings with real-time updates and a beautiful, intuitive interface.
 
 ## ✨ Features
 
-- **📊 Real-time Financial Tracking** - Monitor income, expenses, and savings
-- **🎨 Material Design 3** - Modern, expressive theming with glass morphism
+- **📊 Real-time Financial Tracking** - Monitor income, expenses, and savings with instant updates
+- **🎨 Material Design 3** - Modern, expressive theming with glass morphism effects
 - **📱 Fully Responsive** - Optimized for all devices (mobile, tablet, desktop)
 - **💾 Supabase Backend** - Secure, real-time database with PostgreSQL
 - **🔄 CRUD Operations** - Create, read, update, and delete transactions
-- **📈 Dynamic Analytics** - Real-time calculations and percentages
+- **📈 Dynamic Analytics** - Real-time calculations and balance tracking
 - **🎯 Category Management** - Organize transactions by categories
 - **💰 PKR Currency Support** - Pakistani Rupee formatting
 - **⚡ Fast Performance** - Built with Vite for lightning-fast development
+- **🔄 Real-time Updates** - UI updates instantly when data changes
 
 ## 🚀 Tech Stack
 
-- **Frontend**: React 18, Vite, Tailwind CSS
+- **Frontend**: React 19, Vite, Tailwind CSS
 - **Backend**: Supabase (PostgreSQL)
 - **Styling**: Material Design 3, Glass Morphism
 - **Icons**: Material Icons
-- **State Management**: React Hooks
+- **State Management**: React Hooks with custom hooks
 - **Build Tool**: Vite
+- **Real-time**: Supabase Realtime subscriptions
 
 ## 🎨 Design Features
 
@@ -75,29 +77,52 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 The app uses PostgreSQL with the following main tables:
 - **users** - User authentication and profiles
 - **categories** - Transaction categories (income/expense)
-- **transactions** - Financial transactions with amounts and dates
+- **transactions** - Financial transactions with amounts, dates, payment methods, and income sources
 - **budgets** - Budget planning and tracking
 - **financial_goals** - Savings and investment goals
 
 ## 🎯 Key Features
 
 ### Financial Tracking
-- **Income Management** - Track all sources of income
-- **Expense Tracking** - Monitor spending by categories
+- **Income Management** - Track all sources of income with real-time updates
+- **Expense Tracking** - Monitor spending by categories with instant balance updates
 - **Balance Calculation** - Real-time net worth updates
 - **Percentage Analytics** - Visual breakdown of finances
+- **Payment Methods** - Track cash, card, and transfer payments
+- **Income Sources** - Categorize income by source (wallet, bank, etc.)
 
 ### User Experience
-- **Intuitive Interface** - Clean, modern design
+- **Intuitive Interface** - Clean, modern design with Material Design 3
 - **Quick Actions** - Add transactions with one click
 - **Smart Filtering** - Filter by type and category
-- **Real-time Updates** - Instant data synchronization
+- **Real-time Updates** - Instant data synchronization across all devices
+- **Transaction Details** - View and edit transaction details in modals
+- **Transfer Tracking** - Special handling for transfer transactions
 
 ### Data Management
-- **CRUD Operations** - Full transaction management
-- **Category System** - Organized financial tracking
+- **CRUD Operations** - Full transaction management with real-time updates
+- **Category System** - Organized financial tracking with custom categories
 - **Date Grouping** - Transactions grouped by date
 - **Search & Filter** - Find transactions quickly
+- **Real-time Subscriptions** - Automatic UI updates when data changes
+
+## 🔄 Real-time Features
+
+### Automatic Updates
+- ✅ When you add a transaction → UI updates immediately
+- ✅ When you update a transaction → UI updates immediately
+- ✅ When you delete a transaction → UI updates immediately
+- ✅ When categories change → UI updates immediately
+- ✅ When balances change → UI updates immediately
+
+### Real-time Flow
+```
+1. User adds transaction → Database updated
+2. Supabase real-time detects change
+3. Hook receives notification
+4. Hook re-fetches/re-calculates data
+5. UI updates immediately
+```
 
 ## 🚀 Deployment
 
@@ -136,9 +161,10 @@ A passionate front-end developer focused on creating seamless user experiences w
 ## 🙏 Acknowledgments
 
 - **Material Design 3** - For the beautiful design system
-- **Supabase** - For the powerful backend infrastructure
+- **Supabase** - For the powerful backend infrastructure and real-time features
 - **Tailwind CSS** - For the utility-first CSS framework
 - **React Team** - For the amazing frontend library
+- **Vite** - For the lightning-fast build tool
 
 ---
 
