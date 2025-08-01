@@ -2,9 +2,13 @@ import { useState, useMemo, useEffect } from 'react'
 import { useTransactions } from './hooks/useTransactions'
 import { useCategories } from './hooks/useCategories'
 import { useIncomeSources } from './hooks/useIncomeSources'
+import { useSavingsGoals } from './hooks/useSavingsGoals'
+import { useAutoProgress } from './hooks/useAutoProgress'
 import { AddTransactionModal } from './components/AddTransactionModal'
 import { TransactionDetailModal } from './components/TransactionDetailModal'
 import { TransferModal } from './components/TransferModal'
+import { SavingsGoalModal } from './components/SavingsGoalModal'
+import { UpdateProgressModal } from './components/UpdateProgressModal'
 
 function App() {
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false)
@@ -15,6 +19,10 @@ function App() {
   const [selectedTransaction, setSelectedTransaction] = useState(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [showTransferModal, setShowTransferModal] = useState(false)
+  const [showSavingsGoalModal, setShowSavingsGoalModal] = useState(false)
+  const [showUpdateProgressModal, setShowUpdateProgressModal] = useState(false)
+  const [selectedGoal, setSelectedGoal] = useState(null)
+  const [isEditingGoal, setIsEditingGoal] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Use custom hooks for data
@@ -43,6 +51,26 @@ function App() {
     error: incomeSourcesError 
   } = useIncomeSources(memoizedTransactions)
 
+  const {
+    savingsGoals,
+    loading: savingsGoalsLoading,
+    error: savingsGoalsError,
+    fetchSavingsGoals,
+    addSavingsGoal,
+    updateSavingsGoal,
+    deleteSavingsGoal,
+    calculateProgress,
+    getTotalSavings,
+    getTotalTarget
+  } = useSavingsGoals()
+
+  // Auto progress calculation
+  const {
+    autoProgressGoals,
+    goalsNeedingUpdate,
+    totalAutoContributions
+  } = useAutoProgress(savingsGoals, transactions)
+
   // Debug: Log when transactions change
   useEffect(() => {
     console.log('Transactions changed in App:', transactions.length, transactions)
@@ -53,7 +81,10 @@ function App() {
     setIsRefreshing(true)
     console.log('Manual refresh triggered')
     try {
-      await fetchTransactions()
+      await Promise.all([
+        fetchTransactions(),
+        fetchSavingsGoals()
+      ])
       console.log('Manual refresh completed')
     } catch (error) {
       console.error('Manual refresh failed:', error)
@@ -303,15 +334,45 @@ function App() {
 
             <div className="md-card p-3 sm:p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-pink-500">Savings</span>
-                <span className="material-icons-outlined text-purple-600">trending_up</span>
+                <span className="text-sm font-medium text-pink-500">Savings Goals</span>
+                <button
+                  onClick={() => {
+                    setSelectedGoal(null)
+                    setIsEditingGoal(false)
+                    setShowSavingsGoalModal(true)
+                  }}
+                  className="text-purple-600 hover:text-purple-700"
+                >
+                  <span className="material-icons-outlined text-sm">add</span>
+                </button>
               </div>
-                             <div className="text-lg sm:text-xl md:text-2xl font-medium text-gray-900">
-                 {summary.balance > 0 ? 
-                   `Rs ${summary.balance.toLocaleString('en-PK')}` : 'Rs 0.00'
-                 }
-               </div>
-              <div className="text-xs text-purple-600">Net balance</div>
+              <div className="text-lg sm:text-xl md:text-2xl font-medium text-gray-900">
+                Rs {autoProgressGoals.reduce((total, goal) => {
+                  const currentAmount = goal.should_auto_update ? 
+                    goal.auto_calculated_amount : 
+                    (goal.current_amount || 0)
+                  return total + currentAmount
+                }, 0).toLocaleString('en-PK')}
+              </div>
+              <div className="text-xs text-purple-600">
+                {(() => {
+                  const totalSaved = autoProgressGoals.reduce((total, goal) => {
+                    const currentAmount = goal.should_auto_update ? 
+                      goal.auto_calculated_amount : 
+                      (goal.current_amount || 0)
+                    return total + currentAmount
+                  }, 0)
+                  
+                  const totalTarget = autoProgressGoals.reduce((total, goal) => 
+                    total + (goal.target_amount || 0), 0
+                  )
+                  
+                  const progressPercentage = totalTarget > 0 ? 
+                    ((totalSaved / totalTarget) * 100).toFixed(1) : 0
+                  
+                  return `${progressPercentage}% of target (Rs ${totalTarget.toLocaleString('en-PK')})`
+                })()}
+              </div>
             </div>
           </div>
         </div>
@@ -362,6 +423,187 @@ function App() {
                 <div className="text-xs text-gray-500">Remaining balance</div>
               </div>
             </div>
+        </div>
+
+        {/* Savings Goals Section */}
+        <div className="mb-6 sm:mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl sm:text-2xl font-medium text-gray-900">Savings Goals</h2>
+            <button 
+              onClick={() => {
+                setSelectedGoal(null)
+                setIsEditingGoal(false)
+                setShowSavingsGoalModal(true)
+              }}
+              className="bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 active:bg-purple-500 shadow-sm hover:shadow-md transition-all duration-200 font-medium flex items-center text-sm"
+            >
+              <span className="material-icons-outlined mr-1 text-sm">add</span>
+              Add Goal
+            </button>
+          </div>
+
+          {savingsGoalsLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+              <p className="text-gray-600 mt-2">Loading savings goals...</p>
+            </div>
+          ) : savingsGoalsError ? (
+            <div className="text-center py-8">
+              <span className="material-icons-outlined text-4xl text-red-500">error</span>
+              <p className="text-red-600 mt-2">Error loading savings goals</p>
+            </div>
+          ) : savingsGoals.length === 0 ? (
+            <div className="text-center py-8">
+              <span className="material-icons-outlined text-6xl text-gray-300">savings</span>
+              <p className="text-gray-600 mt-2">No savings goals yet</p>
+              <p className="text-gray-500 text-sm">Create your first savings goal to start tracking your progress</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {autoProgressGoals.map((goal) => {
+                // Use auto-calculated amount if available, otherwise use manual amount
+                const currentAmount = goal.should_auto_update ? 
+                  goal.auto_calculated_amount : 
+                  (goal.current_amount || 0)
+                
+                const progress = calculateProgress(goal, currentAmount)
+                const remaining = (goal.target_amount || 0) - currentAmount
+                
+                return (
+                  <div key={goal.id} className="md-card p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900 mb-1">{goal.title}</h3>
+                        {goal.description && (
+                          <p className="text-sm text-gray-600 mb-2">{goal.description}</p>
+                        )}
+                        <div className="flex items-center space-x-2 text-xs">
+                          <span className={`px-2 py-1 rounded-full ${
+                            goal.priority === 'urgent' ? 'bg-red-100 text-red-800' :
+                            goal.priority === 'high' ? 'bg-orange-100 text-orange-800' :
+                            goal.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-green-100 text-green-800'
+                          }`}>
+                            {goal.priority}
+                          </span>
+                          <span className="px-2 py-1 rounded-full bg-purple-100 text-purple-800">
+                            {goal.category}
+                          </span>
+                          {goal.should_auto_update && (
+                            <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-800 flex items-center">
+                              <span className="material-icons-outlined text-xs mr-1">sync</span>
+                              Auto
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex space-x-1">
+                        <button
+                          onClick={() => {
+                            // Find the auto-calculated version of this goal
+                            const autoGoal = autoProgressGoals.find(g => g.id === goal.id) || goal
+                            setSelectedGoal(autoGoal)
+                            setShowUpdateProgressModal(true)
+                          }}
+                          className="text-gray-400 hover:text-blue-600"
+                          title="Update Progress"
+                        >
+                          <span className="material-icons-outlined text-sm">trending_up</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedGoal(goal)
+                            setIsEditingGoal(true)
+                            setShowSavingsGoalModal(true)
+                          }}
+                          className="text-gray-400 hover:text-gray-600"
+                          title="Edit Goal"
+                        >
+                          <span className="material-icons-outlined text-sm">edit</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm('Are you sure you want to delete this goal?')) {
+                              deleteSavingsGoal(goal.id)
+                            }
+                          }}
+                          className="text-gray-400 hover:text-red-600"
+                          title="Delete Goal"
+                        >
+                          <span className="material-icons-outlined text-sm">delete</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="mb-3">
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-600">Progress</span>
+                        <span className="text-gray-900 font-medium">{progress.toFixed(1)}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full transition-all duration-300 ${
+                            progress >= 100 ? 'bg-green-500' :
+                            progress >= 75 ? 'bg-blue-500' :
+                            progress >= 50 ? 'bg-yellow-500' :
+                            progress >= 25 ? 'bg-orange-500' :
+                            'bg-red-500'
+                          }`}
+                          style={{ width: `${progress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    {/* Amounts */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Current:</span>
+                        <span className="text-gray-900 font-medium">
+                          Rs {currentAmount.toLocaleString('en-PK')}
+                          {goal.should_auto_update && goal.auto_calculated_amount > 0 && (
+                            <span className="text-blue-600 text-xs ml-1">(Auto)</span>
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Target:</span>
+                        <span className="text-gray-900 font-medium">
+                          Rs {(goal.target_amount || 0).toLocaleString('en-PK')}
+                        </span>
+                      </div>
+                      {remaining > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Remaining:</span>
+                          <span className="text-red-600 font-medium">
+                            Rs {remaining.toLocaleString('en-PK')}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Target Date */}
+                    {goal.target_date && (
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Target Date:</span>
+                          <span className="text-gray-900">
+                            {new Date(goal.target_date).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+
         </div>
 
         {/* Transactions Section */}
@@ -633,6 +875,32 @@ function App() {
         isOpen={showTransferModal} 
         onClose={() => setShowTransferModal(false)}
         addTransaction={addTransaction}
+      />
+
+      {/* Savings Goal Modal */}
+      <SavingsGoalModal 
+        isOpen={showSavingsGoalModal} 
+        onClose={() => {
+          setShowSavingsGoalModal(false)
+          setSelectedGoal(null)
+          setIsEditingGoal(false)
+        }}
+        addSavingsGoal={addSavingsGoal}
+        updateSavingsGoal={updateSavingsGoal}
+        goal={selectedGoal}
+        isEditing={isEditingGoal}
+        categories={categories}
+      />
+
+      {/* Update Progress Modal */}
+      <UpdateProgressModal 
+        isOpen={showUpdateProgressModal} 
+        onClose={() => {
+          setShowUpdateProgressModal(false)
+          setSelectedGoal(null)
+        }}
+        goal={selectedGoal}
+        updateSavingsGoal={updateSavingsGoal}
       />
     </div>
   )
