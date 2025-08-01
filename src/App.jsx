@@ -34,11 +34,14 @@ function App() {
     error: categoriesError 
   } = useCategories()
 
+  // Memoize transactions to prevent unnecessary re-triggers
+  const memoizedTransactions = useMemo(() => transactions, [transactions])
+
   const { 
     incomeSources, 
     loading: incomeSourcesLoading, 
     error: incomeSourcesError 
-  } = useIncomeSources(transactions)
+  } = useIncomeSources(memoizedTransactions)
 
   // Debug: Log when transactions change
   useEffect(() => {
@@ -270,7 +273,7 @@ function App() {
                     {summary.income > 0 ? ` ${Math.round((summary.expense / summary.income) * 100)}%` : ''}
                   </span>
                 </span>
-                <span className="material-icons-outlined text-purple-600">trending_up</span>
+                <span className="material-icons-outlined text-red-500">trending_down</span>
               </div>
                                             <div className="text-lg sm:text-xl md:text-2xl font-medium text-gray-900">
                  {summary.expense > 0 ? 
@@ -610,7 +613,7 @@ function App() {
       <AddTransactionModal 
         isOpen={showAddModal} 
         onClose={() => setShowAddModal(false)}
-        addTransaction={addTransaction}
+        transactions={transactions}
       />
 
       {/* Transaction Detail Modal */}

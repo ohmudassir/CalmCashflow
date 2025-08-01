@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 
 export const useIncomeSources = (transactions = []) => {
@@ -11,7 +11,7 @@ export const useIncomeSources = (transactions = []) => {
   const [error, setError] = useState(null)
 
   // Calculate balances from transactions
-  const calculateFromTransactions = useCallback((transactionList) => {
+  const calculateFromTransactions = (transactionList) => {
     console.log('Calculating income sources from transactions:', transactionList.length)
     const sources = {
       wallet: 0,
@@ -68,20 +68,29 @@ export const useIncomeSources = (transactions = []) => {
 
     console.log('Calculated income sources:', sources)
     return sources
-  }, [])
+  }
 
-  // Update income sources when transactions change
-  useEffect(() => {
-    console.log('Income sources: Transactions changed, recalculating balances')
-    if (transactions.length > 0) {
-      const newIncomeSources = calculateFromTransactions(transactions)
-      setIncomeSources(newIncomeSources)
-      setLoading(false)
-    } else {
-      setIncomeSources({ wallet: 0, bank: 0, digital_wallet: 0 })
-      setLoading(false)
+  // Memoize the calculated income sources
+  const newIncomeSources = useMemo(() => {
+    if (transactions.length === 0) {
+      return { wallet: 0, bank: 0, digital_wallet: 0 }
     }
-  }, [transactions, calculateFromTransactions])
+    return calculateFromTransactions(transactions)
+  }, [transactions])
+
+  // Update income sources when calculated values change
+  useEffect(() => {
+    console.log('Income sources: Calculated values changed, updating state')
+    setIncomeSources(prev => {
+      const hasChanged = JSON.stringify(prev) !== JSON.stringify(newIncomeSources)
+      if (hasChanged) {
+        console.log('Income sources updated:', newIncomeSources)
+        return newIncomeSources
+      }
+      return prev
+    })
+    setLoading(false)
+  }, [newIncomeSources])
 
   // Get available amount for a source
   const getAvailableAmount = useCallback((source) => {

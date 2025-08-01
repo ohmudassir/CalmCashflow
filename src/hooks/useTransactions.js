@@ -1,6 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
+// Debounce utility function
+function debounce(fn, delay) {
+  let timeoutId
+  return (...args) => {
+    clearTimeout(timeoutId)
+    timeoutId = setTimeout(() => fn(...args), delay)
+  }
+}
+
 export const useTransactions = () => {
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
@@ -27,13 +36,29 @@ export const useTransactions = () => {
       const newTransactions = data || []
       console.log('Fetched transactions:', newTransactions.length, 'transactions')
       console.log('Setting transactions state with:', newTransactions)
-      setTransactions(newTransactions)
+      
+      // Prevent unnecessary state updates if data hasn't changed
+      setTransactions(prev => {
+        const hasChanged = JSON.stringify(prev) !== JSON.stringify(newTransactions)
+        if (hasChanged) {
+          console.log('Transactions updated - data changed')
+          return newTransactions
+        }
+        console.log('Transactions unchanged - skipping update')
+        return prev
+      })
     } catch (err) {
       setError(err.message)
     } finally {
       setLoading(false)
     }
   }
+
+  // Create debounced version of fetchTransactions
+  const fetchTransactionsDebounced = useCallback(
+    debounce(fetchTransactions, 300), // delay by 300ms
+    []
+  )
 
   // Setup real-time subscriptions
   useEffect(() => {
@@ -54,8 +79,8 @@ export const useTransactions = () => {
         (payload) => {
           console.log('Transaction change detected:', payload)
           console.log('Re-fetching transactions due to change...')
-          // Re-fetch data to update UI
-          fetchTransactions()
+          // Re-fetch data to update UI with debouncing
+          fetchTransactionsDebounced()
         }
       )
       .subscribe()
@@ -65,7 +90,7 @@ export const useTransactions = () => {
       console.log('Cleaning up real-time subscription')
       supabase.removeChannel(transactionsChannel)
     }
-  }, [])
+  }, [fetchTransactionsDebounced])
 
   // Add new transaction (direct insert for testing)
   const addTransaction = async (transactionData) => {

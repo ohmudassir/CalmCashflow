@@ -4,7 +4,7 @@ import { useTransactions } from '../hooks/useTransactions'
 import { useIncomeSources } from '../hooks/useIncomeSources'
 import { ensureTestUser } from '../lib/supabase'
 
-export const AddTransactionModal = ({ isOpen, onClose }) => {
+export const AddTransactionModal = ({ isOpen, onClose, transactions = [] }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -23,7 +23,7 @@ export const AddTransactionModal = ({ isOpen, onClose }) => {
 
   const { categories } = useCategories()
   const { addTransaction } = useTransactions()
-  const { incomeSources, getAvailableAmount } = useIncomeSources()
+  const { incomeSources, getAvailableAmount } = useIncomeSources(transactions)
 
   // Close dropdowns when clicking outside
   useEffect(() => {
