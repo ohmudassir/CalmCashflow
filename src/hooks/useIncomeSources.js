@@ -46,10 +46,17 @@ export const useIncomeSources = (transactions = []) => {
         const fromSource = transaction.income_source || 'wallet'
         const amount = parseFloat(transaction.amount) || 0
         
-        // Parse destination from description: "Transfer from Wallet to Bank"
+        // Parse destination from description: "Transfer from Wallet to Bank" or "Transfer from Digital Wallet to Wallet"
         const description = transaction.description || ''
         let toSource = null
         
+        console.log('Processing transfer transaction:', {
+          description,
+          fromSource,
+          amount
+        })
+        
+        // Check for "to [Source]" pattern
         if (description.includes('to Wallet')) {
           toSource = 'wallet'
         } else if (description.includes('to Bank')) {
@@ -58,11 +65,26 @@ export const useIncomeSources = (transactions = []) => {
           toSource = 'digital_wallet'
         }
         
+        // Also check for the arrow format "→ Wallet" or "→ Bank" or "→ Digital Wallet"
+        if (!toSource) {
+          if (description.includes('→ Wallet')) {
+            toSource = 'wallet'
+          } else if (description.includes('→ Bank')) {
+            toSource = 'bank'
+          } else if (description.includes('→ Digital Wallet')) {
+            toSource = 'digital_wallet'
+          }
+        }
+        
+        console.log('Transfer destination detected:', toSource)
+        
         if (sources.hasOwnProperty(fromSource)) {
           sources[fromSource] -= amount
+          console.log(`Subtracted ${amount} from ${fromSource}`)
         }
         if (toSource && sources.hasOwnProperty(toSource)) {
           sources[toSource] += amount
+          console.log(`Added ${amount} to ${toSource}`)
         }
       })
 
@@ -72,6 +94,7 @@ export const useIncomeSources = (transactions = []) => {
 
   // Memoize the calculated income sources
   const newIncomeSources = useMemo(() => {
+    console.log('useIncomeSources: Recalculating with', transactions.length, 'transactions')
     if (transactions.length === 0) {
       return { wallet: 0, bank: 0, digital_wallet: 0 }
     }

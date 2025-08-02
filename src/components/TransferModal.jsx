@@ -3,7 +3,7 @@ import { useIncomeSources } from '../hooks/useIncomeSources'
 import { useTransactions } from '../hooks/useTransactions'
 import { ensureTestUser } from '../lib/supabase'
 
-export const TransferModal = ({ isOpen, onClose }) => {
+export const TransferModal = ({ isOpen, onClose, transactions = [] }) => {
   const [formData, setFormData] = useState({
     from_source: 'wallet',
     to_source: 'bank',
@@ -16,7 +16,7 @@ export const TransferModal = ({ isOpen, onClose }) => {
   const [fromDropdownOpen, setFromDropdownOpen] = useState(false)
   const [toDropdownOpen, setToDropdownOpen] = useState(false)
 
-  const { incomeSources, getAvailableAmount, loading: balancesLoading } = useIncomeSources()
+  const { incomeSources, getAvailableAmount, loading: balancesLoading } = useIncomeSources(transactions)
   const { addTransaction } = useTransactions()
 
   // Close dropdowns when clicking outside
@@ -55,7 +55,9 @@ export const TransferModal = ({ isOpen, onClose }) => {
       // Create one transfer transaction (use 'expense' type since database doesn't support 'transfer')
       const transferTransaction = {
         title: `Transfer: ${getSourceDisplayName(formData.from_source)} → ${getSourceDisplayName(formData.to_source)}`,
-        description: formData.description || `Transfer from ${getSourceDisplayName(formData.from_source)} to ${getSourceDisplayName(formData.to_source)}`,
+        description: formData.description 
+          ? `${formData.description} (Transfer from ${getSourceDisplayName(formData.from_source)} to ${getSourceDisplayName(formData.to_source)})`
+          : `Transfer from ${getSourceDisplayName(formData.from_source)} to ${getSourceDisplayName(formData.to_source)}`,
         amount: amount,
         type: 'expense', // Use 'expense' type since database constraint doesn't allow 'transfer'
         category_id: null, // We'll need a transfer category
@@ -75,6 +77,9 @@ export const TransferModal = ({ isOpen, onClose }) => {
       if (newTransaction) {
         // This will be handled by the useIncomeSources hook
         console.log('Transfer transaction added:', newTransaction)
+        console.log('Transfer description:', transferTransaction.description)
+        console.log('From source:', formData.from_source)
+        console.log('To source:', formData.to_source)
       }
       
       // Show success message
@@ -122,9 +127,10 @@ export const TransferModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-        <div className="flex items-center justify-between mb-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] flex flex-col">
+        {/* Fixed Header */}
+        <div className="flex items-center justify-between p-6 pb-4 border-b border-gray-200">
           <h2 className="text-xl font-medium text-gray-900">Transfer Money</h2>
           <button
             onClick={onClose}
@@ -134,7 +140,9 @@ export const TransferModal = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Scrollable Form Content */}
+        <div className="flex-1 overflow-y-auto p-6 pt-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
           {/* From Source */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -303,6 +311,7 @@ export const TransferModal = ({ isOpen, onClose }) => {
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   )

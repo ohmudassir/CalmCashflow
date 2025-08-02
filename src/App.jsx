@@ -10,6 +10,7 @@ import { TransferModal } from './components/TransferModal'
 import { SavingsGoalModal } from './components/SavingsGoalModal'
 import { UpdateProgressModal } from './components/UpdateProgressModal'
 
+
 function App() {
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false)
   const [typeDropdownOpen, setTypeDropdownOpen] = useState(false)
@@ -24,6 +25,7 @@ function App() {
   const [selectedGoal, setSelectedGoal] = useState(null)
   const [isEditingGoal, setIsEditingGoal] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
+
 
   // Use custom hooks for data
   const { 
@@ -71,10 +73,10 @@ function App() {
     totalAutoContributions
   } = useAutoProgress(savingsGoals, transactions)
 
-  // Debug: Log when transactions change
-  useEffect(() => {
-    console.log('Transactions changed in App:', transactions.length, transactions)
-  }, [transactions])
+
+
+  // Removed automatic initialization to prevent duplicate categories
+  // Categories can be added manually through the Category Manager
 
   // Manual refresh function
   const handleRefresh = async () => {
@@ -111,8 +113,6 @@ function App() {
 
   // Calculate summary directly from transactions
   const summary = useMemo(() => {
-    console.log('Recalculating summary with transactions:', transactions)
-    
     const income = transactions
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + parseFloat(t.amount), 0)
@@ -218,6 +218,7 @@ function App() {
                        <span className="material-icons-outlined mr-1 sm:mr-2 text-base sm:text-lg">add</span>
                        Add Transaction
                      </button>
+
                      <button
                        onClick={handleRefresh}
                        disabled={isRefreshing}
@@ -874,7 +875,7 @@ function App() {
       <TransferModal 
         isOpen={showTransferModal} 
         onClose={() => setShowTransferModal(false)}
-        addTransaction={addTransaction}
+        transactions={transactions}
       />
 
       {/* Savings Goal Modal */}
@@ -902,6 +903,8 @@ function App() {
         goal={selectedGoal}
         updateSavingsGoal={updateSavingsGoal}
       />
+
+
     </div>
   )
 }

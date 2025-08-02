@@ -40,9 +40,53 @@ export const useCategories = () => {
           table: 'categories',
         },
         (payload) => {
-          console.log('Category change detected:', payload)
-          // Re-fetch data to update UI
-          fetchCategories()
+          console.log('Real-time category event:', payload.eventType, payload)
+          
+          // Handle real-time updates based on event type
+          if (payload.eventType === 'INSERT') {
+            // New category added - add to local state if not already present
+            const newCategory = payload.new
+            console.log('Real-time INSERT: Adding category:', newCategory)
+            setCategories(prev => {
+              const exists = prev.find(cat => cat.id === newCategory.id)
+              if (exists) {
+                console.log('Real-time INSERT: Category already exists, skipping')
+                return prev
+              }
+              console.log('Real-time INSERT: Adding to state')
+              return [newCategory, ...prev]
+            })
+          } else if (payload.eventType === 'UPDATE') {
+            // Category updated - update in local state
+            const updatedCategory = payload.new
+            console.log('Real-time UPDATE: Updating category:', updatedCategory)
+            // Only update if the category doesn't already have the same data
+            setCategories(prev => {
+              const existing = prev.find(cat => cat.id === updatedCategory.id)
+              if (existing && 
+                  existing.name === updatedCategory.name && 
+                  existing.icon === updatedCategory.icon && 
+                  existing.color === updatedCategory.color) {
+                console.log('Real-time UPDATE: Category already has same data, skipping')
+                return prev
+              }
+              console.log('Real-time UPDATE: Updating category in state')
+              return prev.map(cat => cat.id === updatedCategory.id ? updatedCategory : cat)
+            })
+          } else if (payload.eventType === 'DELETE') {
+            // Category deleted - remove from local state
+            const deletedCategory = payload.old
+            console.log('Real-time DELETE: Removing category:', deletedCategory)
+            setCategories(prev => {
+              const exists = prev.find(cat => cat.id === deletedCategory.id)
+              if (!exists) {
+                console.log('Real-time DELETE: Category not found in state, skipping')
+                return prev
+              }
+              console.log('Real-time DELETE: Removing category from state')
+              return prev.filter(cat => cat.id !== deletedCategory.id)
+            })
+          }
         }
       )
       .subscribe()
@@ -80,9 +124,17 @@ export const useCategories = () => {
 
       if (error) throw error
       
-      // The real-time subscription will handle the UI update
-      console.log('Category added successfully:', data[0])
-      return data[0]
+      // Update local state immediately for dynamic UI
+      const newCategory = data[0]
+      setCategories(prev => {
+        // Check if category already exists to prevent duplicates
+        const exists = prev.find(cat => cat.id === newCategory.id)
+        if (exists) return prev
+        return [newCategory, ...prev]
+      })
+      
+      console.log('Category added successfully:', newCategory)
+      return newCategory
     } catch (err) {
       setError(err.message)
       throw err
@@ -100,9 +152,14 @@ export const useCategories = () => {
 
       if (error) throw error
       
-      // The real-time subscription will handle the UI update
-      console.log('Category updated successfully:', data[0])
-      return data[0]
+      // Update local state immediately for dynamic UI
+      const updatedCategory = data[0]
+      setCategories(prev => prev.map(cat => 
+        cat.id === id ? updatedCategory : cat
+      ))
+      
+      console.log('Category updated successfully:', updatedCategory)
+      return updatedCategory
     } catch (err) {
       setError(err.message)
       throw err
@@ -119,7 +176,9 @@ export const useCategories = () => {
 
       if (error) throw error
       
-      // The real-time subscription will handle the UI update
+      // Update local state immediately for dynamic UI
+      setCategories(prev => prev.filter(cat => cat.id !== id))
+      
       console.log('Category deleted successfully:', id)
     } catch (err) {
       setError(err.message)
@@ -136,6 +195,7 @@ export const useCategories = () => {
     getExpenseCategories,
     addCategory,
     updateCategory,
-    deleteCategory
+    deleteCategory,
+    fetchCategories
   }
 } 
