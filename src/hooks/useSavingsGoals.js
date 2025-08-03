@@ -77,8 +77,17 @@ export const useSavingsGoals = () => {
 
       if (error) throw error
       
-      console.log('Savings goal added successfully:', data[0])
-      return data[0]
+      // Update local state immediately for dynamic UI
+      const newGoal = data[0]
+      setSavingsGoals(prev => {
+        // Check if goal already exists to prevent duplicates
+        const exists = prev.find(goal => goal.id === newGoal.id)
+        if (exists) return prev
+        return [newGoal, ...prev]
+      })
+      
+      console.log('Savings goal added successfully:', newGoal)
+      return newGoal
     } catch (err) {
       setError(err.message)
       throw err
@@ -96,8 +105,14 @@ export const useSavingsGoals = () => {
 
       if (error) throw error
       
-      console.log('Savings goal updated successfully:', data[0])
-      return data[0]
+      // Update local state immediately for dynamic UI
+      const updatedGoal = data[0]
+      setSavingsGoals(prev => prev.map(goal => 
+        goal.id === id ? updatedGoal : goal
+      ))
+      
+      console.log('Savings goal updated successfully:', updatedGoal)
+      return updatedGoal
     } catch (err) {
       setError(err.message)
       throw err
@@ -114,7 +129,10 @@ export const useSavingsGoals = () => {
 
       if (error) throw error
       
-      console.log('Savings goal deleted successfully')
+      // Update local state immediately for dynamic UI
+      setSavingsGoals(prev => prev.filter(goal => goal.id !== id))
+      
+      console.log('Savings goal deleted successfully:', id)
     } catch (err) {
       setError(err.message)
       throw err
