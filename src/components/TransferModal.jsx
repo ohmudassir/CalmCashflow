@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useIncomeSources } from '../hooks/useIncomeSources'
-import { useTransactions } from '../hooks/useTransactions'
 import { ensureTestUser } from '../lib/supabase'
 
-export const TransferModal = ({ isOpen, onClose, transactions = [] }) => {
+export const TransferModal = ({ isOpen, onClose, transactions = [], addTransaction }) => {
   const [formData, setFormData] = useState({
     from_source: 'wallet',
     to_source: 'bank',
@@ -17,7 +16,9 @@ export const TransferModal = ({ isOpen, onClose, transactions = [] }) => {
   const [toDropdownOpen, setToDropdownOpen] = useState(false)
 
   const { incomeSources, getAvailableAmount, loading: balancesLoading } = useIncomeSources(transactions)
-  const { addTransaction } = useTransactions()
+  
+
+  // Use the addTransaction function passed from parent component
 
   // Close dropdowns when clicking outside
   useEffect(() => {

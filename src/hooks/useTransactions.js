@@ -85,20 +85,24 @@ export const useTransactions = () => {
             setTransactions(prev => {
               const exists = prev.some(t => t.id === payload.new.id)
               if (!exists) {
-                return [payload.new, ...prev]
+                // Only fetch if the transaction doesn't exist in our state
+                // This prevents overriding immediate updates from addTransaction
+                console.log('🔄 Real-time INSERT detected, fetching full transaction data')
+                fetchTransactionsDebounced()
+                return prev
               }
+              console.log('✅ Transaction already exists in state, skipping real-time update')
               return prev
             })
           } else if (payload.eventType === 'UPDATE') {
-            setTransactions(prev => {
-              const updated = prev.map(t => 
-                t.id === payload.new.id ? payload.new : t
-              )
-              return updated
-            })
+            // For updates, also fetch to get the full transaction with categories
+            fetchTransactionsDebounced()
           } else if (payload.eventType === 'DELETE') {
+            // Update local state immediately for dynamic UI (same as deleteTransaction function)
             setTransactions(prev => {
               const filtered = prev.filter(t => t.id !== payload.old.id)
+              console.log('✅ Transaction removed from state via real-time:', payload.old.id)
+              console.log('📊 Total transactions now:', filtered.length)
               return filtered
             })
           }
@@ -179,11 +183,27 @@ export const useTransactions = () => {
   const updateTransaction = async (id, updates) => {
     try {
       console.log('✏️ Attempting to update transaction:', id, updates)
+      
+      // Validate ID
+      if (!id || id === '') {
+        throw new Error('Transaction ID is missing or empty')
+      }
+      
       // Prepare update data with default values for new fields
       const updateData = {
         ...updates,
         payment_method: updates.payment_method || 'cash',
         income_source: updates.income_source || 'wallet'
+      }
+      
+      // Fix empty string UUID fields
+      if (updateData.category_id === '') {
+        updateData.category_id = null
+      }
+      
+      // Fix any other potential UUID fields
+      if (updateData.user_id === '') {
+        updateData.user_id = null
       }
 
       const { data, error } = await supabase

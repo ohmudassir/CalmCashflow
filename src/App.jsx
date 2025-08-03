@@ -858,7 +858,7 @@ function App() {
       <AddTransactionModal 
         isOpen={showAddModal} 
         onClose={() => setShowAddModal(false)}
-        transactions={transactions}
+        transactions={memoizedTransactions}
         addTransaction={addTransaction}
       />
 
@@ -878,7 +878,8 @@ function App() {
       <TransferModal 
         isOpen={showTransferModal} 
         onClose={() => setShowTransferModal(false)}
-        transactions={transactions}
+        transactions={memoizedTransactions}
+        addTransaction={addTransaction}
       />
 
       {/* Savings Goal Modal */}

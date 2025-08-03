@@ -12,7 +12,7 @@ export const TransactionDetailModal = ({ transaction, isOpen, onClose, updateTra
     description: '',
     amount: '',
     type: 'expense',
-    category_id: '',
+    category_id: null,
     transaction_date: new Date().toISOString().split('T')[0],
     currency: 'PKR',
     payment_method: 'cash',
@@ -27,7 +27,7 @@ export const TransactionDetailModal = ({ transaction, isOpen, onClose, updateTra
         description: transaction.description || '',
         amount: transaction.amount || '',
         type: transaction.type || 'expense',
-        category_id: transaction.category_id || '',
+        category_id: transaction.category_id || null,
         transaction_date: transaction.transaction_date || new Date().toISOString().split('T')[0],
         currency: transaction.currency || 'PKR',
         payment_method: transaction.payment_method || 'cash',
@@ -67,6 +67,14 @@ export const TransactionDetailModal = ({ transaction, isOpen, onClose, updateTra
     setLoading(true)
 
     try {
+      console.log('🔍 Updating transaction with ID:', transaction?.id)
+      console.log('🔍 Transaction object:', transaction)
+      console.log('🔍 Form data:', formData)
+      
+      if (!transaction?.id) {
+        throw new Error('Transaction ID is missing or invalid')
+      }
+      
       await updateTransaction(transaction.id, {
         ...formData,
         amount: parseFloat(formData.amount)
@@ -100,7 +108,12 @@ export const TransactionDetailModal = ({ transaction, isOpen, onClose, updateTra
     }
   }
 
-  if (!isOpen || !transaction) return null
+  if (!isOpen || !transaction) {
+    console.log('❌ TransactionDetailModal: No transaction or modal not open')
+    return null
+  }
+  
+  console.log('✅ TransactionDetailModal: Transaction loaded:', transaction.id, transaction.title)
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

@@ -80,23 +80,23 @@ export const useIncomeSources = (transactions = []) => {
     return sources
   }
 
-  // Memoize the calculated income sources
+  // Memoize the calculated income sources with better dependency tracking
   const newIncomeSources = useMemo(() => {
+    console.log('🔄 Recalculating income sources from', transactions.length, 'transactions')
     if (transactions.length === 0) {
       return { wallet: 0, bank: 0, digital_wallet: 0 }
     }
-    return calculateFromTransactions(transactions)
+    const calculated = calculateFromTransactions(transactions)
+    console.log('💰 Calculated balances:', calculated)
+    return calculated
   }, [transactions])
 
-  // Update income sources when calculated values change
+
+
+  // Update income sources immediately when calculated values change
   useEffect(() => {
-    setIncomeSources(prev => {
-      const hasChanged = JSON.stringify(prev) !== JSON.stringify(newIncomeSources)
-      if (hasChanged) {
-        return newIncomeSources
-      }
-      return prev
-    })
+    console.log('📊 Updating income sources state')
+    setIncomeSources(newIncomeSources)
     setLoading(false)
   }, [newIncomeSources])
 
