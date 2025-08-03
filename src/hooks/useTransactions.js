@@ -78,9 +78,30 @@ export const useTransactions = () => {
         },
         (payload) => {
           console.log('Transaction change detected:', payload)
-          console.log('Re-fetching transactions due to change...')
-          // Re-fetch data to update UI with debouncing
-          fetchTransactionsDebounced()
+          
+          // Handle real-time updates directly instead of re-fetching
+          if (payload.eventType === 'INSERT') {
+            // Check if transaction already exists to prevent duplicates
+            setTransactions(prev => {
+              const exists = prev.some(t => t.id === payload.new.id)
+              if (!exists) {
+                return [payload.new, ...prev]
+              }
+              return prev
+            })
+          } else if (payload.eventType === 'UPDATE') {
+            setTransactions(prev => {
+              const updated = prev.map(t => 
+                t.id === payload.new.id ? payload.new : t
+              )
+              return updated
+            })
+          } else if (payload.eventType === 'DELETE') {
+            setTransactions(prev => {
+              const filtered = prev.filter(t => t.id !== payload.old.id)
+              return filtered
+            })
+          }
         }
       )
       .subscribe()
@@ -134,9 +155,19 @@ export const useTransactions = () => {
         throw new Error(`Database error: ${error.message}`)
       }
       
-      // The real-time subscription will handle the UI update
-      console.log('Transaction added successfully:', data[0])
-      return data[0]
+      // Update local state immediately for dynamic UI
+      const newTransaction = data[0]
+      console.log('🎯 Database insert successful:', newTransaction)
+      setTransactions(prev => {
+        // Add the new transaction at the beginning (most recent first)
+        const updatedTransactions = [newTransaction, ...prev]
+        console.log('✅ Transaction added to state immediately:', newTransaction.title)
+        console.log('📊 Total transactions now:', updatedTransactions.length)
+        return updatedTransactions
+      })
+      
+      console.log('Transaction added successfully:', newTransaction)
+      return newTransaction
     } catch (err) {
       console.error('Error in addTransaction:', err)
       setError(err.message)
@@ -147,6 +178,7 @@ export const useTransactions = () => {
   // Update transaction
   const updateTransaction = async (id, updates) => {
     try {
+      console.log('✏️ Attempting to update transaction:', id, updates)
       // Prepare update data with default values for new fields
       const updateData = {
         ...updates,
@@ -170,10 +202,20 @@ export const useTransactions = () => {
 
       if (error) throw error
       
-      // The real-time subscription will handle the UI update
-      console.log('Transaction updated successfully:', data[0])
-      return data[0]
+      // Update local state immediately for dynamic UI
+      const updatedTransaction = data[0]
+      setTransactions(prev => {
+        const updatedTransactions = prev.map(transaction => 
+          transaction.id === id ? updatedTransaction : transaction
+        )
+        console.log('✅ Transaction updated in state immediately:', updatedTransaction.title)
+        return updatedTransactions
+      })
+      
+      console.log('Transaction updated successfully:', updatedTransaction)
+      return updatedTransaction
     } catch (err) {
+      console.error('❌ Error updating transaction:', err)
       setError(err.message)
       throw err
     }
@@ -182,6 +224,7 @@ export const useTransactions = () => {
   // Delete transaction
   const deleteTransaction = async (id) => {
     try {
+      console.log('🗑️ Attempting to delete transaction:', id)
       const { error } = await supabase
         .from('transactions')
         .delete()
@@ -189,9 +232,17 @@ export const useTransactions = () => {
 
       if (error) throw error
       
-      // The real-time subscription will handle the UI update
+      // Update local state immediately for dynamic UI
+      setTransactions(prev => {
+        const updatedTransactions = prev.filter(transaction => transaction.id !== id)
+        console.log('✅ Transaction removed from state immediately:', id)
+        console.log('📊 Total transactions now:', updatedTransactions.length)
+        return updatedTransactions
+      })
+      
       console.log('Transaction deleted successfully:', id)
     } catch (err) {
+      console.error('❌ Error deleting transaction:', err)
       setError(err.message)
       throw err
     }

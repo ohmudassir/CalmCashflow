@@ -149,6 +149,7 @@ function App() {
 
   // Group transactions by date
   const groupedTransactions = useMemo(() => {
+    console.log('🔄 Recalculating grouped transactions with:', filteredTransactions.length, 'transactions')
     const groups = {}
     filteredTransactions.forEach(transaction => {
       const date = new Date(transaction.transaction_date).toLocaleDateString('en-US', {
@@ -162,6 +163,7 @@ function App() {
       }
       groups[date].push(transaction)
     })
+    console.log('📅 Grouped transactions:', Object.keys(groups))
     return groups
   }, [filteredTransactions])
 
@@ -857,6 +859,7 @@ function App() {
         isOpen={showAddModal} 
         onClose={() => setShowAddModal(false)}
         transactions={transactions}
+        addTransaction={addTransaction}
       />
 
       {/* Transaction Detail Modal */}

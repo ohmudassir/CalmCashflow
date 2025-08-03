@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useCategories } from '../hooks/useCategories'
 import { useTransactions } from '../hooks/useTransactions'
 
-export const TransactionDetailModal = ({ transaction, isOpen, onClose }) => {
+export const TransactionDetailModal = ({ transaction, isOpen, onClose, updateTransaction, deleteTransaction }) => {
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false)
@@ -37,7 +37,7 @@ export const TransactionDetailModal = ({ transaction, isOpen, onClose }) => {
   }, [transaction, isEditing])
 
   const { categories } = useCategories()
-  const { updateTransaction, deleteTransaction } = useTransactions()
+  // Remove this line since updateTransaction and deleteTransaction are now passed as props
 
   // Close dropdowns when clicking outside
   useEffect(() => {

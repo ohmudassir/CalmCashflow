@@ -5,7 +5,7 @@ import { useIncomeSources } from '../hooks/useIncomeSources'
 import { ensureTestUser } from '../lib/supabase'
 import { IconSelector } from './IconSelector'
 
-export const AddTransactionModal = ({ isOpen, onClose, transactions = [] }) => {
+export const AddTransactionModal = ({ isOpen, onClose, transactions = [], addTransaction }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -161,7 +161,7 @@ export const AddTransactionModal = ({ isOpen, onClose, transactions = [] }) => {
   useEffect(() => {
     console.log('AddTransactionModal: Categories updated:', categories.length, categories.map(c => ({ id: c.id, name: c.name, type: c.type })))
   }, [categories])
-  const { addTransaction } = useTransactions()
+  // Remove this line since addTransaction is now passed as prop
   const { incomeSources, getAvailableAmount } = useIncomeSources(transactions)
 
   // Close dropdowns when clicking outside
@@ -212,11 +212,11 @@ export const AddTransactionModal = ({ isOpen, onClose, transactions = [] }) => {
         income_source: 'wallet'
       })
       
-      // Close modal after a short delay
+      // Close modal after a longer delay so user can see the transaction appear
       setTimeout(() => {
         setSuccess(false)
         onClose()
-      }, 1000)
+      }, 2000)
     } catch (error) {
       console.error('Error adding transaction:', error)
       let errorMessage = 'Error adding transaction. Please try again.'
